@@ -10,26 +10,35 @@
 #include "absl/log/log.h"
 
 using namespace absl;
-int main() {
-    // absl::InitializeLog();
-    arc_cache cache(3);
-    
-    cache.lookup("Hello", "Hallo");
-	cache.lookup("World", "Welt");
-	std::cout << cache.lookup("World","(null)") << "\n";
-	cache.lookup("Cache", "Cache");
-	cache.lookup("Replace", "Ersetzen");
-    std::cout << cache.hashed_mem.size() << "\n" ;
-    for ( auto& a : cache.hashed_mem){
-        std::cout << a.first << a.second << "\n" ;
-    }
 
-
-}
 
 arc_cache::arc_cache(uint64_t cap){
     p = 0;
     capacity = cap;
+    lookup_count = 0;
+    hit_count = 0;
+    miss_count = 0;
+    // absl::ParseCommandLine();
+    // absl::InitializeLog();
+
+}
+
+static inline double round_to(double value, double precision = 1.0)
+{
+    return std::round(value / precision) * precision;
+}
+
+
+void arc_cache::get_stats(){
+    DLOG(INFO) << "----\n";
+    DLOG(INFO) << "ARC replacement policy:\n";
+    DLOG(INFO) << "----\n";
+    // DLOG(INFO) << "hit ratio:" << round_to((double)hit_count/(double)lookup_count,2);
+    DLOG(INFO) << "hit ratio:" << (double)hit_count/(double)lookup_count;
+    DLOG(INFO) << "lookups:" << lookup_count;
+    DLOG(INFO) << "hits:" << hit_count;
+    DLOG(INFO) << "misses:" << miss_count;
+    DLOG(INFO) << "----\n";
 }
 
 /*
@@ -79,28 +88,31 @@ void arc_cache::replace(uint64_t p, kv_cache_key_t key) {
 }
 
 kv_cache_value_t arc_cache::lookup(kv_cache_key_t key, kv_cache_value_t value) {
-    lookup_count++;
+    this->lookup_count++;
     // case 1
     if ((contains(T1, key) || contains(T2, key))) {
-        T2.emplace_front(key);
         hit_count++;
+
+        T2.emplace_front(key);
     } else if (contains(B1, key)) {
+        miss_count++;
+
         uint64_t y = std::max(B2.size() / B1.size(), (uint64_t)1);
         p = std::min(capacity, (p + y));
         replace(p, key);
         T2.emplace_front(key);
         hashed_mem.insert({key, value});
-        miss_count++;
     } else if (contains(B2, key)) {
+        miss_count++;
+
         uint64_t y = std::max(B1.size() / B2.size(), (uint64_t)1);
         p = std::max(capacity, (p - y));
         replace(p, key);
         T2.emplace_front(key);
         hashed_mem.insert({key, value});
-        miss_count++;
     } else {
-        // if ((key_in_t1 || key_in_t2 || key_in_b1 || key_in_b2)) {
         miss_count++;
+
         if ((B1.size() + T1.size()) == capacity) {
             // case i
             if (T1.size() < capacity) {
