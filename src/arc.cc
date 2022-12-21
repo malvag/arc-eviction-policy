@@ -10,12 +10,13 @@
 arc_cache::arc_cache(uint64_t target_cache_mem_budget,
                      uint64_t key_value_size) {
 
-  std::unique_lock<std::mutex>(cacheLock);
+  cacheLock.lock();
   p = 0;
   capacity = target_cache_mem_budget / key_value_size;
   lookup_count = 0;
   hit_count = 0;
   miss_count = 0;
+  cacheLock.unlock();
   // absl::ParseCommandLine();
   // absl::InitializeLog();
 }
@@ -25,7 +26,7 @@ static inline double round_to(double value, double precision = 1.0) {
 }
 
 void arc_cache::get_stats() {
-  std::unique_lock<std::mutex>(cacheLock);
+  cacheLock.lock();
   std::cout << "----\n";
   std::cout << "ARC replacement policy:\n";
   std::cout << "----\n";
@@ -36,6 +37,7 @@ void arc_cache::get_stats() {
   std::cout << "hits:" << hit_count << "\n";
   std::cout << "misses:" << miss_count << "\n";
   std::cout << "----\n";
+  cacheLock.unlock();
 }
 
 /*
@@ -86,13 +88,15 @@ void arc_cache::replace(uint64_t p, kv_cache_key_t key) {
 }
 
 void arc_cache::put(kv_cache_key_t key, kv_cache_value_t value) {
-  std::unique_lock<std::mutex>(cacheLock);
+  cacheLock.lock();
 
   hashed_mem.emplace(key, value);
+  cacheLock.unlock();
+
 }
 
 kv_cache_value_t arc_cache::lookup(kv_cache_key_t key) {
-  std::unique_lock<std::mutex>(cacheLock);
+  cacheLock.lock();
 
   lookup_count++;
   // case 1
@@ -141,5 +145,7 @@ kv_cache_value_t arc_cache::lookup(kv_cache_key_t key) {
     T1.emplace_front(key);
     hashed_mem.emplace(key, "");
   }
-  return hashed_mem[key];
+  std::string value = hashed_mem[key];
+  cacheLock.unlock();
+  return value;
 }
