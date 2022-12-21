@@ -7,9 +7,9 @@
 #include <string>
 #include <vector>
 
-arc_cache::arc_cache(uint64_t cap) {
+arc_cache::arc_cache(uint64_t target_cache_mem_budget, uint64_t key_value_size) {
   p = 0;
-  capacity = cap;
+  capacity = target_cache_mem_budget/key_value_size;
   lookup_count = 0;
   hit_count = 0;
   miss_count = 0;
