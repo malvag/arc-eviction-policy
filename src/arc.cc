@@ -7,9 +7,12 @@
 #include <string>
 #include <vector>
 
-arc_cache::arc_cache(uint64_t target_cache_mem_budget, uint64_t key_value_size) {
+arc_cache::arc_cache(uint64_t target_cache_mem_budget,
+                     uint64_t key_value_size) {
+
+  std::unique_lock<std::mutex>(cacheLock);
   p = 0;
-  capacity = target_cache_mem_budget/key_value_size;
+  capacity = target_cache_mem_budget / key_value_size;
   lookup_count = 0;
   hit_count = 0;
   miss_count = 0;
@@ -22,6 +25,7 @@ static inline double round_to(double value, double precision = 1.0) {
 }
 
 void arc_cache::get_stats() {
+  std::unique_lock<std::mutex>(cacheLock);
   std::cout << "----\n";
   std::cout << "ARC replacement policy:\n";
   std::cout << "----\n";
@@ -82,10 +86,14 @@ void arc_cache::replace(uint64_t p, kv_cache_key_t key) {
 }
 
 void arc_cache::put(kv_cache_key_t key, kv_cache_value_t value) {
+  std::unique_lock<std::mutex>(cacheLock);
+
   hashed_mem.emplace(key, value);
 }
 
 kv_cache_value_t arc_cache::lookup(kv_cache_key_t key) {
+  std::unique_lock<std::mutex>(cacheLock);
+
   lookup_count++;
   // case 1
   if ((contains(T1, key) || contains(T2, key))) {
