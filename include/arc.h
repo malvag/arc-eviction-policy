@@ -1,16 +1,22 @@
 #ifndef ARC_CACHE_H
 #define ARC_CACHE_H
 #include <stdint.h>
+#include <string>
+#include <unordered_map>
+#include <deque>
 
-#include "cache.h"
+typedef std::string kv_cache_key_t;
 
-class arc_cache : public usr_level_cache {
+typedef std::string kv_cache_value_t;
+
+class arc_cache{
 public:
-  kv_cache_value_t lookup(kv_cache_key_t, kv_cache_value_t);
+  kv_cache_value_t lookup(kv_cache_key_t);
   void replace(uint64_t, kv_cache_key_t);
   arc_cache(uint64_t);
+  void put(kv_cache_key_t key, kv_cache_value_t value);
 
-  absl::node_hash_map<kv_cache_key_t, kv_cache_value_t> hashed_mem;
+  std::unordered_map<kv_cache_key_t, kv_cache_value_t> hashed_mem;
   void get_stats();
 private:
 
